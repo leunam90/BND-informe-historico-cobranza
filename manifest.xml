@@ -1,0 +1,14 @@
+<manifest projecttype="ACCOUNTCUSTOMIZATION">
+    <!--<publisherid>com.bnd</publisherid>-->
+    <!--<projectid>bndinforme-cxc</projectid>-->
+    <projectname>informe-cxc</projectname>
+    <!--<projectversion>1.0.0</projectversion>-->
+    <frameworkversion>1.0</frameworkversion>
+    <dependencies>
+        <features>
+		<feature required="true">SERVERSIDESCRIPTING</feature>
+		<feature required="false">CUSTOMRECORDS</feature>
+		<feature required="false">CRM</feature>
+        </features>
+    </dependencies>
+</manifest>

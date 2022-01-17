@@ -1,0 +1,12 @@
+{
+    "name": "informe-cxc",
+    "author": "Manuel Cervera",
+    "email": "manuel_cervera@outlook.com",
+    "authid": "",
+    "role": 55,
+    "url": "system.netsuite.com",
+    "version": "1.0.0",
+    "env": "testing",
+    "description": "",
+    "company_abbreviation": "bnd"
+}

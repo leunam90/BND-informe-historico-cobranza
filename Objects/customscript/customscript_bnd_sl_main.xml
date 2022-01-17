@@ -1,0 +1,25 @@
+<suitelet scriptid="customscript_bnd_sl_main">
+  <description>Suitelet to show the filters to create a cxc report.</description>
+  <isinactive>F</isinactive>
+  <name>BND|SL|MAIN</name>
+  <notifyadmins>F</notifyadmins>
+  <notifyemails></notifyemails>
+  <notifyowner>T</notifyowner>
+  <notifyuser>F</notifyuser>
+  <scriptfile>[/SuiteScripts/informe-cxc/bnd_sl_main.js]</scriptfile>
+  <scriptdeployments>
+    <scriptdeployment scriptid="customdeploy_bnd_sl_main_1">
+      <allemployees>F</allemployees>
+      <allpartners>F</allpartners>
+      <allroles>T</allroles>
+      <audslctrole></audslctrole>
+      <eventtype></eventtype>
+      <isdeployed>T</isdeployed>
+      <isonline>F</isonline>
+      <loglevel>DEBUG</loglevel>
+      <runasrole>ADMINISTRATOR</runasrole>
+      <status>RELEASED</status>
+      <title>BND|SL|MAIN</title>
+    </scriptdeployment>
+  </scriptdeployments>
+</suitelet>

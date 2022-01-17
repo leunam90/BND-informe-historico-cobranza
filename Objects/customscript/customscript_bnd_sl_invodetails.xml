@@ -1,0 +1,27 @@
+<suitelet scriptid="customscript_bnd_sl_invodetails">
+    <description>Suitelet with the details of an invoice transaction.</description>
+    <isinactive>F</isinactive>
+    <!--El nombre del userevent es obligatorio -->
+    <name>BND|SL|INVOICE DETAILS</name>
+    <notifyadmins>F</notifyadmins>
+    <notifyemails></notifyemails>
+    <notifyowner>T</notifyowner>
+    <notifyuser>F</notifyuser>
+    <scriptfile>[/SuiteScripts/informe-cxc/bnd_sl_invoice_details.js]</scriptfile>
+    <scriptdeployments>
+        <scriptdeployment scriptid="customdeploy_bnd_sl_invodetails_1">
+            <allemployees>F</allemployees>
+            <allpartners>F</allpartners>
+            <allroles>T</allroles>
+            <audslctrole></audslctrole>
+            <eventtype></eventtype>
+            <isdeployed>T</isdeployed>
+            <isonline>F</isonline>
+            <loglevel>DEBUG</loglevel>
+            <runasrole>ADMINISTRATOR</runasrole>
+            <status>RELEASED</status>
+            <title>BND|SL|INVOICE DETAILS</title>
+
+        </scriptdeployment>
+    </scriptdeployments>
+</suitelet>
