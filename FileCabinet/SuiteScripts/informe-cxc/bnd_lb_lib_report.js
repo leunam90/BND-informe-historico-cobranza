@@ -26,6 +26,8 @@ define(['N/search'], (search) => {
                 filters.push(["appliedtotransaction", "anyof", docNumber]);
             }
 
+            log.debug('filters', filters);
+
             let columns = [
                 "mainline", "trandate", "tranid", "amount", "customerMain.altname", "transactionnumber", "transactionname",
                 "appliedtotransaction", "appliedToTransaction.type", "appliedToTransaction.trandate", "appliedToTransaction.amount", "appliedToTransaction.amountpaid",
@@ -158,7 +160,10 @@ define(['N/search'], (search) => {
                     }
 
                     if (iscompensation) {
-                        this.getBillPayments(paymentsObj, nopagocliente);
+                        if (nopagocliente != "") {
+                            this.getBillPayments(paymentsObj, nopagocliente);
+                        }
+
                     }
                 });
             });
@@ -407,7 +412,7 @@ define(['N/search'], (search) => {
                 });
             });
 
-            log.debug('paymentsObj', paymentsObj);
+            //log.debug('paymentsObj', paymentsObj);
             return paymentsObj;
         }
     }

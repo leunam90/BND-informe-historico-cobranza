@@ -60,15 +60,18 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         let docNumberField = form.addField({ id: 'custpage_docnumber', type: 'select', label: 'NO DOCUMENTO', container: 'custpage_fieldgroup' });
         let percentField = form.addField({ id: 'custpage_percent', type: 'select', label: 'PORCENTAJE', container: 'custpage_fieldgroup' });
         percentField.addSelectOption({ value: '-1', text: '-Seleccione-' });
-        percentField.addSelectOption({ value: '1', text: '0% - 50%' });
-        percentField.addSelectOption({ value: '2', text: '50% - 80%' });
-        percentField.addSelectOption({ value: '3', text: '80% - 100%' });
+        percentField.addSelectOption({ value: '1', text: '<=10%' });
+        percentField.addSelectOption({ value: '2', text: '<=25%' });
+        percentField.addSelectOption({ value: '3', text: '<=50' });
+        percentField.addSelectOption({ value: '4', text: '<=75' });
+        percentField.addSelectOption({ value: '5', text: '<=100' });
         startDateField.isMandatory = true;
         endDateField.isMandatory = true;
         return form
     }
 
     function createResults(startdate, enddate, customer, docnumber, percent) {
+        log.debug('customer', customer);
         let results = serverWidget.createList({ title: 'HISTORIAL DE COBRANZA' });
         results.clientScriptModulePath = './bnd_cs_main.js';
         results.addButton({ id: 'custpage_mainpage', label: 'Filtros', functionName: "mainpage" });
@@ -113,11 +116,11 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                 }
             });
             cont++;
-            log.debug('customer payments', paymentsObj[customerName]);
+            //log.debug('customer payments', paymentsObj[customerName]);
             let payments = paymentsObj[customerName]
 
             for (let payment in payments) {
-                log.debug('payment', payments[payment])
+                //log.debug('payment', payments[payment])
                 let payedAmount = Number(payments[payment].amount);
                 if (payedAmount > 0) {
                     payedAmount = dollarUS.format({ number: payedAmount });
@@ -128,24 +131,26 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                 let invoices = payments[payment].invoices;
                 for (let inv in invoices) {
                     let percentaje = (Number(invoices[inv].invoiceamountremaining) / invoices[inv].invoiceamount) * 100;
-                    let percentRangeMin = null;
                     let percentRangeMax = null;
                     if (percent != '-1') {
                         switch (percent) {
                             case '1':
-                                percentRangeMin = 0;
-                                percentRangeMax = 50;
+                                percentRangeMax = 10;
                                 break;
                             case '2':
-                                percentRangeMin = 51;
-                                percentRangeMax = 80;
+                                percentRangeMax = 25;
                                 break;
                             case '3':
-                                percentRangeMin = 81;
+                                percentRangeMax = 50;
+                                break;
+                            case '4':
+                                percentRangeMax = 75;
+                                break;
+                            case '5':
                                 percentRangeMax = 100;
                                 break;
                         }
-                        if (percentaje >= percentRangeMin && percentaje <= percentRangeMax) {
+                        if (percentaje <= percentRangeMax) {
                             results.addRow({
                                 custpage_customer: "",
                                 custpage_transaction: payment,
@@ -189,7 +194,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                 cont++;
 
                 for (let invoice in invoices) {
-                    log.debug('invoice', invoices[invoice]);
+                    //log.debug('invoice', invoices[invoice]);
                     let invAmount = Number(invoices[invoice].invoiceamount);
                     let invRemaing = Number(invoices[invoice].invoiceamountremaining);
                     let amountPaid = Number(invoices[invoice].invoiceamountpaid);
@@ -201,25 +206,27 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                     amountPaid = dollarUS.format({ number: amountPaid });
 
                     let percentaje = (Number(invoices[invoice].invoiceamountremaining) / invoices[invoice].invoiceamount) * 100;
-                    let percentRangeMin = null;
                     let percentRangeMax = null;
                     if (percent != '-1') {
                         switch (percent) {
                             case '1':
-                                percentRangeMin = 0;
-                                percentRangeMax = 50;
+                                percentRangeMax = 10;
                                 break;
                             case '2':
-                                percentRangeMin = 51;
-                                percentRangeMax = 80;
+                                percentRangeMax = 25;
                                 break;
                             case '3':
-                                percentRangeMin = 81;
+                                percentRangeMax = 50;
+                                break;
+                            case '4':
+                                percentRangeMax = 75;
+                                break;
+                            case '5':
                                 percentRangeMax = 100;
                                 break;
                         }
 
-                        if (percentaje >= percentRangeMin && percentaje <= percentRangeMax) {
+                        if (percentaje <= percentRangeMax) {
                             results.addRow({
                                 custpage_customer: "",
                                 custpage_transaction: payment,
@@ -405,25 +412,28 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
 
                 for (let inv in invoices) {
                     let percentaje = (Number(invoices[inv].invoiceamountremaining) / invoices[inv].invoiceamount) * 100;
-                    let percentRangeMin = null;
+
                     let percentRangeMax = null;
 
                     if (percent != '-1') {
                         switch (percent) {
                             case '1':
-                                percentRangeMin = 0;
-                                percentRangeMax = 50;
+                                percentRangeMax = 10;
                                 break;
                             case '2':
-                                percentRangeMin = 51;
-                                percentRangeMax = 80;
+                                percentRangeMax = 25;
                                 break;
                             case '3':
-                                percentRangeMin = 81;
+                                percentRangeMax = 50;
+                                break;
+                            case '4':
+                                percentRangeMax = 75;
+                                break;
+                            case '5':
                                 percentRangeMax = 100;
                                 break;
                         }
-                        if (percentaje >= percentRangeMin && percentaje <= percentRangeMax) {
+                        if (percentaje <= percentRangeMax) {
                             let iscompen = payments[payment].iscompensation ? 'SI' : 'NO';
                             xmlFile += '<ss:Row>' +
                                 '<ss:Cell>' +
@@ -530,19 +540,22 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                     if (percent != '-1') {
                         switch (percent) {
                             case '1':
-                                percentRangeMin = 0;
-                                percentRangeMax = 50;
+                                percentRangeMax = 10;
                                 break;
                             case '2':
-                                percentRangeMin = 51;
-                                percentRangeMax = 80;
+                                percentRangeMax = 25;
                                 break;
                             case '3':
-                                percentRangeMin = 81;
+                                percentRangeMax = 50;
+                                break;
+                            case '4':
+                                percentRangeMax = 75;
+                                break;
+                            case '5':
                                 percentRangeMax = 100;
                                 break;
                         }
-                        if (percentaje >= percentRangeMin && percentaje <= percentRangeMax) {
+                        if (percentaje <= percentRangeMax) {
                             let iscompen = payments[payment].iscompensation ? 'SI' : 'NO';
                             xmlFile += '<ss:Row>' +
                                 '<ss:Cell>' +

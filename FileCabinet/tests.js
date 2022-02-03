@@ -149,7 +149,12 @@ require(['N/search'], function(search) {
                 }
 
                 if (iscompensation) {
-                    getBillPayments(paymentsObj, nopagocliente);
+                    log.debug('iscompensation', iscompensation);
+                    log.debug('nopagocliente', nopagocliente);
+                    if (nopagocliente != "") {
+                        getBillPayments(paymentsObj, nopagocliente);
+                    }
+
                 }
             });
         });
@@ -182,7 +187,7 @@ require(['N/search'], function(search) {
         paymentSearchObj.pageRanges.forEach((pageRange) => {
             let currentPage = paymentSearchObj.fetch({ index: pageRange.index });
             currentPage.data.forEach((currentRow) => {
-                log.debug('currentRow', currentRow)
+                //log.debug('currentRow', currentRow)
                 let mainline = currentRow.getValue({ name: 'mainline' });
                 let customerName = currentRow.getValue({ name: 'entityid', join: 'vendor' });
                 let trandate = currentRow.getValue({ name: 'trandate' });
@@ -304,9 +309,9 @@ require(['N/search'], function(search) {
     }
 
 
-    const startdate = '01/12/2021';
-    const enddate = '31/12/2021';
-    const customer = '223';
+    const startdate = '01/11/2021';
+    const enddate = '30/11/2021';
+    const customer = '219';
     let result = getCustomerPayments(startdate, enddate, customer, '-1');
 
     log.debug('result', result);
