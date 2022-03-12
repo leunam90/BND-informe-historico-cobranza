@@ -10,13 +10,21 @@ define(['N/search'], (search) => {
     return class BandanaLibs {
         constructor() {}
 
-        getCustomerPayments(startDate, endDate, customer, docNumber) {
+        getCustomerPayments(startDate, endDate, customer, docNumber, nocustpayment, nocustpaymentns) {
             let paymentsObj = {};
             let transaction = {};
             let filters = [
                 ["type", "anyof", "CustPymt", "CustCred"],
                 "AND", ["trandate", "within", startDate, endDate]
             ]
+            if (nocustpayment) {
+                filters.push("AND");
+                filters.push(["custbody23", "startswith", nocustpayment]);
+            }
+            if (nocustpaymentns) {
+                filters.push("AND");
+                filters.push(["transactionnumbernumber", "equalto", nocustpaymentns]);
+            }
             if (customer) {
                 filters.push("AND");
                 filters.push(["customermain.internalid", "anyof", customer]);
@@ -32,7 +40,7 @@ define(['N/search'], (search) => {
                 "mainline", "trandate", "tranid", "amount", "customerMain.altname", "transactionnumber", "transactionname",
                 "appliedtotransaction", "appliedToTransaction.type", "appliedToTransaction.trandate", "appliedToTransaction.amount", "appliedToTransaction.amountpaid",
                 "appliedtolinkamount", "appliedToTransaction.amountremaining", "appliedToTransaction.custbody_be_uuid_sat",
-                "appliedToTransaction.otherrefnum", "custbody26", "custbody23"
+                "appliedToTransaction.otherrefnum", "custbody26", "custbody23", "appliedToTransaction.tranestgrossprofit"
             ];
 
             let paymentSearchObj = search.create({
@@ -45,6 +53,7 @@ define(['N/search'], (search) => {
             paymentSearchObj.pageRanges.forEach((pageRange) => {
                 let currentPage = paymentSearchObj.fetch({ index: pageRange.index });
                 currentPage.data.forEach((currentRow) => {
+                    // log.debug('currentRow', currentRow);
                     let mainline = currentRow.getValue({ name: 'mainline' });
                     let customerName = currentRow.getValue({ name: 'altname', join: 'customerMain' });
                     let trandate = currentRow.getValue({ name: 'trandate' });
@@ -63,6 +72,7 @@ define(['N/search'], (search) => {
                     let invoicepo = currentRow.getValue({ name: 'otherrefnum', join: 'appliedToTransaction' });
                     let iscompensation = currentRow.getValue({ name: 'custbody26' });
                     let nopagocliente = currentRow.getValue({ name: 'custbody23' });
+                    let estgrossprofit = currentRow.getValue({ name: 'tranestgrossprofit', join: 'appliedToTransaction' });
 
                     if (mainline == '*') {
                         if (!paymentsObj.hasOwnProperty(customerName)) {
@@ -75,8 +85,8 @@ define(['N/search'], (search) => {
                                 nopagocliente,
                                 invoices: {}
                             };
-                            if (appliedtotransaction && tranType == 'CustInvc') {
-                                paymentsObj[customerName][transactionname]['invoices'][appliedtotransaction] = {
+                            if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
+                                paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
                                     appliedtotransaction,
                                     invoiceId,
                                     invoicenumber,
@@ -86,21 +96,25 @@ define(['N/search'], (search) => {
                                     invoiceuuid,
                                     invoiceamountpaid,
                                     invoicetotalamountpaid,
-                                    invoicepo
+                                    invoicepo,
+                                    estgrossprofit
                                 }
                             }
 
                         } else {
-                            paymentsObj[customerName][transactionname] = {
-                                transactionname,
-                                trandate,
-                                amount,
-                                iscompensation,
-                                nopagocliente,
-                                invoices: {}
-                            };
-                            if (appliedtotransaction && tranType == 'CustInvc') {
-                                paymentsObj[customerName][transactionname]['invoices'][appliedtotransaction] = {
+                            if (!paymentsObj[customerName].hasOwnProperty(transactionname)) {
+                                paymentsObj[customerName][transactionname] = {
+                                    transactionname,
+                                    trandate,
+                                    amount,
+                                    iscompensation,
+                                    nopagocliente,
+                                    invoices: {}
+                                };
+                            }
+
+                            if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
+                                paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
                                     appliedtotransaction,
                                     invoiceId,
                                     invoicenumber,
@@ -110,7 +124,8 @@ define(['N/search'], (search) => {
                                     invoiceuuid,
                                     invoiceamountpaid,
                                     invoicetotalamountpaid,
-                                    invoicepo
+                                    invoicepo,
+                                    estgrossprofit
                                 }
                             }
                         }
@@ -126,8 +141,8 @@ define(['N/search'], (search) => {
                                 nopagocliente,
                                 invoices: {}
                             };
-                            if (appliedtotransaction && tranType == 'CustInvc') {
-                                paymentsObj[customerName][transactionname]['invoices'][appliedtotransaction] = {
+                            if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
+                                paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
                                     appliedtotransaction,
                                     invoiceId,
                                     invoicenumber,
@@ -137,12 +152,14 @@ define(['N/search'], (search) => {
                                     invoiceuuid,
                                     invoiceamountpaid,
                                     invoicetotalamountpaid,
-                                    invoicepo
+                                    invoicepo,
+                                    estgrossprofit
                                 }
                             }
                         } else {
-                            if (appliedtotransaction && tranType == 'CustInvc') {
-                                paymentsObj[customerName][transactionname]['invoices'][appliedtotransaction] = {
+
+                            if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
+                                paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
                                     appliedtotransaction,
                                     invoiceId,
                                     invoicenumber,
@@ -152,7 +169,8 @@ define(['N/search'], (search) => {
                                     invoiceuuid,
                                     invoiceamountpaid,
                                     invoicetotalamountpaid,
-                                    invoicepo
+                                    invoicepo,
+                                    estgrossprofit
                                 }
                             }
                         }
@@ -165,6 +183,7 @@ define(['N/search'], (search) => {
                         }
 
                     }
+                    //log.debug('paymntobj', paymentsObj);
                 });
             });
 
@@ -283,7 +302,7 @@ define(['N/search'], (search) => {
                 "mainline", "trandate", "tranid", "amount", "vendor.entityid", "transactionnumber", "transactionname",
                 "appliedtotransaction", "appliedToTransaction.type", "appliedToTransaction.trandate", "appliedToTransaction.amount", "appliedToTransaction.amountpaid",
                 "appliedtolinkamount", "appliedToTransaction.amountremaining", "appliedToTransaction.custbody_be_uuid_sat",
-                "appliedToTransaction.otherrefnum", "custbody26", "custbody23"
+                "appliedToTransaction.otherrefnum", "custbody26", "custbody23", "estgrossprofit"
             ];
 
             let paymentSearchObj = search.create({
@@ -314,6 +333,7 @@ define(['N/search'], (search) => {
                     let invoicepo = currentRow.getValue({ name: 'otherrefnum', join: 'appliedToTransaction' });
                     let iscompensation = currentRow.getValue({ name: 'custbody26' });
                     let nopagocliente = currentRow.getValue({ name: 'custbody23' });
+                    let estgrossprofit = currentRow.getValue({ name: 'estgrossprofit' });
 
                     if (mainline == '*') {
                         if (!paymentsObj.hasOwnProperty(customerName)) {
@@ -337,7 +357,8 @@ define(['N/search'], (search) => {
                                     invoiceuuid,
                                     invoiceamountpaid,
                                     invoicetotalamountpaid,
-                                    invoicepo
+                                    invoicepo,
+                                    estgrossprofit
                                 }
                             }
 
@@ -361,7 +382,8 @@ define(['N/search'], (search) => {
                                     invoiceuuid,
                                     invoiceamountpaid,
                                     invoicetotalamountpaid,
-                                    invoicepo
+                                    invoicepo,
+                                    estgrossprofit
                                 }
                             }
                         }
@@ -388,7 +410,8 @@ define(['N/search'], (search) => {
                                     invoiceuuid,
                                     invoiceamountpaid,
                                     invoicetotalamountpaid,
-                                    invoicepo
+                                    invoicepo,
+                                    estgrossprofit
                                 }
                             }
                         } else {
@@ -403,7 +426,8 @@ define(['N/search'], (search) => {
                                     invoiceuuid,
                                     invoiceamountpaid,
                                     invoicetotalamountpaid,
-                                    invoicepo
+                                    invoicepo,
+                                    estgrossprofit
                                 }
                             }
                         }

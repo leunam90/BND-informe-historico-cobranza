@@ -34,7 +34,9 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                         const customer = context.request.parameters.custpage_customer;
                         const docnumber = context.request.parameters.custpage_docnumber;
                         const percent = context.request.parameters.custpage_percent;
-                        form = createResults(startdate, enddate, customer, docnumber, percent);
+                        const nocustpayment = context.request.parameters.custpage_nopagocliente;
+                        const nocustpaymentns = context.request.parameters.custpage_nopagonetsuite;
+                        form = createResults(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns);
                         log.debug('form', form)
                         context.response.writePage({ pageObject: form });
                         break;
@@ -57,7 +59,10 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         let startDateField = form.addField({ id: 'custpage_startdate', type: 'date', label: 'FECHA INICIAL', container: 'custpage_fieldgroup' });
         let endDateField = form.addField({ id: 'custpage_enddate', type: 'date', label: 'FECHA FINAL', container: 'custpage_fieldgroup' });
         let customerField = form.addField({ id: 'custpage_customer', type: 'select', label: 'CLIENTE', container: 'custpage_fieldgroup', source: 'customer' });
+        let nocustpaymentField = form.addField({ id: 'custpage_nopagocliente', type: 'text', label: 'NO PAGO CLIENTE', container: 'custpage_fieldgroup' });
+        let nocustpaymentNSField = form.addField({ id: 'custpage_nopagonetsuite', type: 'text', label: 'NO PAGO NETSUITE', container: 'custpage_fieldgroup' });
         let docNumberField = form.addField({ id: 'custpage_docnumber', type: 'select', label: 'NO DOCUMENTO', container: 'custpage_fieldgroup' });
+        docNumberField.addSelectOption({ value: '-1', text: '-Seleccione-' });
         let percentField = form.addField({ id: 'custpage_percent', type: 'select', label: 'PORCENTAJE', container: 'custpage_fieldgroup' });
         percentField.addSelectOption({ value: '-1', text: '-Seleccione-' });
         percentField.addSelectOption({ value: '1', text: '<=10%' });
@@ -66,21 +71,23 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         percentField.addSelectOption({ value: '4', text: '<=75' });
         percentField.addSelectOption({ value: '5', text: '<=100' });
         startDateField.isMandatory = true;
+        startDateField.defaultValue = '01/01/2019'
         endDateField.isMandatory = true;
+        endDateField.defaultValue = new Date();
         return form
     }
 
-    function createResults(startdate, enddate, customer, docnumber, percent) {
+    function createResults(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns) {
         log.debug('customer', customer);
         let results = serverWidget.createList({ title: 'HISTORIAL DE COBRANZA' });
         results.clientScriptModulePath = './bnd_cs_main.js';
         results.addButton({ id: 'custpage_mainpage', label: 'Filtros', functionName: "mainpage" });
         results.addButton({ id: 'custpage_export', label: 'Exportar', functionName: 'exportReport("' + startdate + '", "' + enddate + '", "' + customer + '", "' + docnumber + '", "' + percent + '")' });
         results.addColumn({ id: 'custpage_customer', type: serverWidget.FieldType.TEXT, label: 'CLIENTE' });
+        results.addColumn({ id: 'custpage_payment_nopagocliente', type: serverWidget.FieldType.TEXT, label: 'NO PAGO CLIENTE' });
         results.addColumn({ id: 'custpage_transaction', type: serverWidget.FieldType.TEXT, label: 'PAGO' });
         results.addColumn({ id: 'custpage_payment_date', type: serverWidget.FieldType.TEXT, label: 'FECHA PAGO' });
         results.addColumn({ id: 'custpage_payment_iscompensation', type: serverWidget.FieldType.TEXT, label: 'COMPENSACIÓN' });
-        results.addColumn({ id: 'custpage_payment_nopagocliente', type: serverWidget.FieldType.TEXT, label: 'NO PAGO CLIENTE' });
         results.addColumn({ id: 'custpage_document_number', type: serverWidget.FieldType.URL, label: 'NÚMERO DE DOCUMENTO' }).setURL({ url: getBaseURL() }).addParamToURL({ param: 'invoiceid', value: 'custpage_document_id', dynamic: true });
         results.addColumn({ id: 'custpage_document_activities', type: serverWidget.FieldType.URL, label: 'ACTIVIDADES' }).setURL({ url: getBaseURL() }).addParamToURL({ param: 'invoiceidactivity', value: 'custpage_document_id', dynamic: true });
         results.addColumn({ id: 'custpage_uuid', type: serverWidget.FieldType.TEXT, label: 'UUID' });
@@ -90,9 +97,10 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         results.addColumn({ id: 'custpage_total_payed_amount', type: serverWidget.FieldType.TEXT, label: 'IMPORTE TOTAL ABONADO' });
         results.addColumn({ id: 'custpage_balance', type: serverWidget.FieldType.TEXT, label: 'SALDO ACTUAL FACTURA' });
         results.addColumn({ id: 'custpage_balance_percent', type: serverWidget.FieldType.TEXT, label: '% DEUDA ACTUAL' });
+        results.addColumn({ id: 'custpage_gross_profit', type: serverWidget.FieldType.TEXT, label: 'GANANCIA BRUTA' });
 
         const reportLib = new libReport();
-        let paymentsObj = reportLib.getCustomerPayments(startdate, enddate, customer, docnumber);
+        let paymentsObj = reportLib.getCustomerPayments(startdate, enddate, customer, docnumber, nocustpayment, nocustpaymentns);
         let cont = 0;
         let dollarUS = formati.getCurrencyFormatter({ currency: 'USD' });
 
@@ -100,10 +108,10 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
             results.addRow({
                 row: {
                     custpage_customer: customerName,
+                    custpage_payment_nopagocliente: "",
                     custpage_transaction: "",
                     custpage_payment_date: "",
                     custpage_payment_iscompensation: "",
-                    custpage_payment_nopagocliente: "",
                     custpage_document_number: "",
                     custpage_document_activities: "",
                     custpage_uuid: "",
@@ -112,7 +120,8 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                     custpage_payed_amount: "",
                     custpage_total_payed_amount: "",
                     custpage_balance: "",
-                    custpage_balance_percent: ""
+                    custpage_balance_percent: "",
+                    custpage_gross_profit: ""
                 }
             });
             cont++;
@@ -153,10 +162,10 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                         if (percentaje <= percentRangeMax) {
                             results.addRow({
                                 custpage_customer: "",
+                                custpage_payment_nopagocliente: payments[payment].nopagocliente,
                                 custpage_transaction: payment,
                                 custpage_payment_date: payments[payment].trandate,
                                 custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
-                                custpage_payment_nopagocliente: payments[payment].nopagocliente,
                                 custpage_document_number: "",
                                 custpage_document_activities: "",
                                 custpage_uuid: "",
@@ -165,17 +174,18 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 custpage_payed_amount: payedAmount,
                                 custpage_total_payed_amount: "",
                                 custpage_balance: "",
-                                custpage_balance_percent: ""
+                                custpage_balance_percent: "",
+                                custpage_gross_profit: ""
                             });
                             break;
                         }
                     } else {
                         results.addRow({
                             custpage_customer: "",
+                            custpage_payment_nopagocliente: payments[payment].nopagocliente,
                             custpage_transaction: payment,
                             custpage_payment_date: payments[payment].trandate,
                             custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
-                            custpage_payment_nopagocliente: payments[payment].nopagocliente,
                             custpage_document_number: "",
                             custpage_document_activities: "",
                             custpage_uuid: "",
@@ -184,7 +194,8 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             custpage_payed_amount: payedAmount,
                             custpage_total_payed_amount: "",
                             custpage_balance: "",
-                            custpage_balance_percent: ""
+                            custpage_balance_percent: "",
+                            custpage_gross_profit: ""
                         });
                         break;
                     }
@@ -198,12 +209,14 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                     let invAmount = Number(invoices[invoice].invoiceamount);
                     let invRemaing = Number(invoices[invoice].invoiceamountremaining);
                     let amountPaid = Number(invoices[invoice].invoiceamountpaid);
-                    let totalAmountPaid = Number(invoices[invoice].invoicetotalamountpaid)
+                    let totalAmountPaid = Number(invoices[invoice].invoicetotalamountpaid);
+                    let grossProfit = Number(invoices[invoice].estgrossprofit);
 
                     invAmount = dollarUS.format({ number: invAmount });
                     totalAmountPaid = dollarUS.format({ number: totalAmountPaid });
                     invRemaing = dollarUS.format({ number: invRemaing });
                     amountPaid = dollarUS.format({ number: amountPaid });
+                    grossProfit = dollarUS.format({ number: grossProfit });
 
                     let percentaje = (Number(invoices[invoice].invoiceamountremaining) / invoices[invoice].invoiceamount) * 100;
                     let percentRangeMax = null;
@@ -229,11 +242,11 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                         if (percentaje <= percentRangeMax) {
                             results.addRow({
                                 custpage_customer: "",
+                                custpage_payment_nopagocliente: payments[payment].nopagocliente,
                                 custpage_transaction: payment,
                                 custpage_payment_date: payments[payment].trandate,
                                 custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
-                                custpage_payment_nopagocliente: payments[payment].nopagocliente,
-                                custpage_document_number: invoices[invoice].invoicenumber,
+                                custpage_document_number: (invoices[invoice].invoicenumber).split(" ")[1],
                                 custpage_document_activities: "VER ACTIVIDADES",
                                 custpage_document_id: invoices[invoice].invoiceId,
                                 custpage_uuid: invoices[invoice].invoiceuuid || null,
@@ -242,17 +255,18 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 custpage_payed_amount: amountPaid,
                                 custpage_total_payed_amount: totalAmountPaid,
                                 custpage_balance: invRemaing,
-                                custpage_balance_percent: percentaje.toFixed(2) + "%"
+                                custpage_balance_percent: percentaje.toFixed(2) + "%",
+                                custpage_gross_profit: grossProfit
                             });
                         }
                     } else {
                         results.addRow({
                             custpage_customer: "",
+                            custpage_payment_nopagocliente: payments[payment].nopagocliente,
                             custpage_transaction: payment,
                             custpage_payment_date: payments[payment].trandate,
                             custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
-                            custpage_payment_nopagocliente: payments[payment].nopagocliente,
-                            custpage_document_number: invoices[invoice].invoicenumber,
+                            custpage_document_number: (invoices[invoice].invoicenumber).split(" ")[1],
                             custpage_document_activities: "VER ACTIVIDADES",
                             custpage_document_id: invoices[invoice].invoiceId,
                             custpage_uuid: invoices[invoice].invoiceuuid || null,
@@ -261,7 +275,8 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             custpage_payed_amount: amountPaid,
                             custpage_total_payed_amount: totalAmountPaid,
                             custpage_balance: invRemaing,
-                            custpage_balance_percent: percentaje.toFixed(2) + "%"
+                            custpage_balance_percent: percentaje.toFixed(2) + "%",
+                            custpage_gross_profit: grossProfit
                         });
                     }
                     cont++
@@ -323,6 +338,9 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
             '<ss:Data ss:Type="String">CLIENTE</ss:Data>' +
             '</ss:Cell>' +
             '<ss:Cell>' +
+            '<ss:Data ss:Type="String">NO PAGO CLIENTE</ss:Data>' +
+            '</ss:Cell>' +
+            '<ss:Cell>' +
             '<ss:Data ss:Type="String">PAGO</ss:Data>' +
             '</ss:Cell>' +
             '<ss:Cell>' +
@@ -330,9 +348,6 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
             '</ss:Cell>' +
             '<ss:Cell>' +
             '<ss:Data ss:Type="String">COMPENSACIÓN</ss:Data>' +
-            '</ss:Cell>' +
-            '<ss:Cell>' +
-            '<ss:Data ss:Type="String">NO PAGO CLIENTE</ss:Data>' +
             '</ss:Cell>' +
             '<ss:Cell>' +
             '<ss:Data ss:Type="String">NÚMERO DE DOCUMENTO</ss:Data>' +
@@ -440,6 +455,9 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 '<ss:Data ss:Type="String"></ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
+                                '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
+                                '</ss:Cell>' +
+                                '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + payment + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
@@ -447,9 +465,6 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + iscompen + '</ss:Data>' +
-                                '</ss:Cell>' +
-                                '<ss:Cell>' +
-                                '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
                                 '<ss:Data ss:Type="String"></ss:Data>' +
@@ -482,6 +497,9 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             '<ss:Data ss:Type="String"></ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
+                            '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
+                            '</ss:Cell>' +
+                            '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + payment + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
@@ -489,9 +507,6 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             '</ss:Cell>' +
                             '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + iscompen + '</ss:Data>' +
-                            '</ss:Cell>' +
-                            '<ss:Cell>' +
-                            '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
                             '<ss:Data ss:Type="String"></ss:Data>' +
@@ -562,6 +577,9 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 '<ss:Data ss:Type="String"></ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
+                                '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
+                                '</ss:Cell>' +
+                                '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + payment + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
@@ -569,9 +587,6 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + iscompen + '</ss:Data>' +
-                                '</ss:Cell>' +
-                                '<ss:Cell>' +
-                                '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + invoices[invoice].invoicenumber + '</ss:Data>' +
@@ -603,6 +618,9 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             '<ss:Data ss:Type="String"></ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
+                            '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
+                            '</ss:Cell>' +
+                            '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + payment + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
@@ -610,9 +628,6 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             '</ss:Cell>' +
                             '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + iscompen + '</ss:Data>' +
-                            '</ss:Cell>' +
-                            '<ss:Cell>' +
-                            '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + invoices[invoice].invoicenumber + '</ss:Data>' +
