@@ -12,39 +12,41 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
     };
 
     entry_point.onRequest = (context) => {
-            log.debug('context', context);
-            log.debug('parameters', context.request.parameters)
-            let form = null;
-            try {
-                switch (context.request.method) {
-                    case 'GET':
-                        if (context.request.parameters.hasOwnProperty('export')) {
-                            log.debug('parameters', context.request.parameters);
-                            const xlsFile = exportReport(context.request.parameters);
-                            context.response.writeFile(xlsFile);
-                        } else {
-                            form = createForm();
-                            context.response.writePage(form);
-                        }
+        log.debug('context', context);
+        log.debug('parameters', context.request.parameters)
+        let form = null;
+        try {
+            switch (context.request.method) {
+                case 'GET':
+                    if (context.request.parameters.hasOwnProperty('export')) {
+                        log.debug('parameters', context.request.parameters);
+                        const xlsFile = exportReport(context.request.parameters);
+                        context.response.writeFile(xlsFile);
+                    } else {
+                        form = createForm();
+                        context.response.writePage(form);
+                    }
 
-                        break;
-                    case 'POST':
-                        const startdate = context.request.parameters.custpage_startdate;
-                        const enddate = context.request.parameters.custpage_enddate;
-                        const customer = context.request.parameters.custpage_customer;
-                        const docnumber = context.request.parameters.custpage_docnumber;
-                        const percent = context.request.parameters.custpage_percent;
-                        const nocustpayment = context.request.parameters.custpage_nopagocliente;
-                        const nocustpaymentns = context.request.parameters.custpage_nopagonetsuite;
-                        form = createResults(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns);
-                        log.debug('form', form)
-                        context.response.writePage({ pageObject: form });
-                        break;
-                }
-            } catch (error) {
-                log.error('onrequest error', error);
+                    break;
+                case 'POST':
+                    const startdate = context.request.parameters.custpage_startdate;
+                    const enddate = context.request.parameters.custpage_enddate;
+                    const customer = context.request.parameters.custpage_customer;
+                    const docnumber = context.request.parameters.custpage_docnumber;
+                    const percent = context.request.parameters.custpage_percent;
+                    const nocustpayment = context.request.parameters.custpage_nopagocliente;
+                    const nocustpaymentns = context.request.parameters.custpage_nopagonetsuite;
+                    form = createResults(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns);
+                    log.debug('form', form)
+                    context.response.writePage({ pageObject: form });
+                    break;
             }
-        } //end onRequest
+        } catch (error) {
+            log.error('onrequest error', error);
+        }
+    }
+
+    //end onRequest
 
 
     return entry_point;
@@ -88,8 +90,8 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         results.addColumn({ id: 'custpage_transaction', type: serverWidget.FieldType.TEXT, label: 'PAGO' });
         results.addColumn({ id: 'custpage_payment_date', type: serverWidget.FieldType.TEXT, label: 'FECHA PAGO' });
         results.addColumn({ id: 'custpage_payment_iscompensation', type: serverWidget.FieldType.TEXT, label: 'COMPENSACIÓN' });
-        results.addColumn({ id: 'custpage_document_number', type: serverWidget.FieldType.URL, label: 'NÚMERO DE DOCUMENTO' }).setURL({ url: getBaseURL() }).addParamToURL({ param: 'invoiceid', value: 'custpage_document_id', dynamic: true });
-        results.addColumn({ id: 'custpage_document_activities', type: serverWidget.FieldType.URL, label: 'ACTIVIDADES' }).setURL({ url: getBaseURL() }).addParamToURL({ param: 'invoiceidactivity', value: 'custpage_document_id', dynamic: true });
+        results.addColumn({ id: 'custpage_document_number', type: serverWidget.FieldType.TEXT, label: 'NÚMERO DE DOCUMENTO' }); //.setURL({ url: getBaseURL() }).addParamToURL({ param: 'invoiceid', value: 'custpage_document_id', dynamic: true });
+        results.addColumn({ id: 'custpage_document_activities', type: serverWidget.FieldType.TEXT, label: 'ACTIVIDADES' }); //.setURL({ url: getBaseURL() }).addParamToURL({ param: 'invoiceidactivity', value: 'custpage_document_id', dynamic: true });
         results.addColumn({ id: 'custpage_uuid', type: serverWidget.FieldType.TEXT, label: 'UUID' });
         results.addColumn({ id: 'custpage_po_number', type: serverWidget.FieldType.TEXT, label: 'NÚMERO PEDIDO' });
         results.addColumn({ id: 'custpage_original_amount', type: serverWidget.FieldType.TEXT, label: 'VALOR ORIGINAL' });
@@ -161,7 +163,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                         }
                         if (percentaje <= percentRangeMax) {
                             results.addRow({
-                                custpage_customer: "",
+                                custpage_customer: customerName,
                                 custpage_payment_nopagocliente: payments[payment].nopagocliente,
                                 custpage_transaction: payment,
                                 custpage_payment_date: payments[payment].trandate,
@@ -181,7 +183,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                         }
                     } else {
                         results.addRow({
-                            custpage_customer: "",
+                            custpage_customer: customerName,
                             custpage_payment_nopagocliente: payments[payment].nopagocliente,
                             custpage_transaction: payment,
                             custpage_payment_date: payments[payment].trandate,
@@ -241,14 +243,14 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
 
                         if (percentaje <= percentRangeMax) {
                             results.addRow({
-                                custpage_customer: "",
+                                custpage_customer: customerName,
                                 custpage_payment_nopagocliente: payments[payment].nopagocliente,
                                 custpage_transaction: payment,
                                 custpage_payment_date: payments[payment].trandate,
                                 custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
-                                custpage_document_number: (invoices[invoice].invoicenumber).split(" ")[1],
-                                custpage_document_activities: "VER ACTIVIDADES",
-                                custpage_document_id: invoices[invoice].invoiceId,
+                                custpage_document_number: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceid=' + invoices[invoice].invoiceId + '" target="_blank">' + (invoices[invoice].invoicenumber).split("#")[1] + '</a>', //(invoices[invoice].invoicenumber).split(" ")[1],
+                                custpage_document_activities: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceidactivity=' + invoices[invoice].invoiceId + '" target="_blank">VER ACTIVIDADES</a>', //"VER ACTIVIDADES",
+                                //custpage_document_id: invoices[invoice].invoiceId,
                                 custpage_uuid: invoices[invoice].invoiceuuid || null,
                                 custpage_po_number: invoices[invoice].invoicepo || null,
                                 custpage_original_amount: invAmount,
@@ -261,13 +263,13 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                         }
                     } else {
                         results.addRow({
-                            custpage_customer: "",
+                            custpage_customer: customerName,
                             custpage_payment_nopagocliente: payments[payment].nopagocliente,
                             custpage_transaction: payment,
                             custpage_payment_date: payments[payment].trandate,
                             custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
-                            custpage_document_number: (invoices[invoice].invoicenumber).split(" ")[1],
-                            custpage_document_activities: "VER ACTIVIDADES",
+                            custpage_document_number: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceid=' + invoices[invoice].invoiceId + '" target="_blank">' + (invoices[invoice].invoicenumber).split("#")[1] + '</a>', //(invoices[invoice].invoicenumber).split(" ")[1],
+                            custpage_document_activities: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceidactivity=' + invoices[invoice].invoiceId + '" target="_blank">VER ACTIVIDADES</a>', //"VER ACTIVIDADES",
                             custpage_document_id: invoices[invoice].invoiceId,
                             custpage_uuid: invoices[invoice].invoiceuuid || null,
                             custpage_po_number: invoices[invoice].invoicepo || null,
@@ -365,14 +367,21 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
             '<ss:Data ss:Type="String">IMPORTE ABONADO</ss:Data>' +
             '</ss:Cell>' +
             '<ss:Cell>' +
+            '<ss:Data ss:Type="String">IMPORTE TOTAL ABONADO</ss:Data>' +
+            '</ss:Cell>' +
+            '<ss:Cell>' +
             '<ss:Data ss:Type="String">SALDO ACTUAL</ss:Data>' +
             '</ss:Cell>' +
             '<ss:Cell>' +
             '<ss:Data ss:Type="String">% DEUDA ACTUAL</ss:Data>' +
             '</ss:Cell>' +
+            '<ss:Cell>' +
+            '<ss:Data ss:Type="String">GANANCIA BRUTA</ss:Data>' +
+            '</ss:Cell>' +
             '</ss:Row>';
         //Data rows start
         let cont = 0;
+
         for (let customerName in paymentsObj) {
             xmlFile += '<ss:Row>' +
                 '<ss:Cell>' +
@@ -411,25 +420,30 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                 '<ss:Cell>' +
                 '<ss:Data ss:Type="String"></ss:Data>' +
                 '</ss:Cell>' +
+                '<ss:Cell>' +
+                '<ss:Data ss:Type="String"></ss:Data>' +
+                '</ss:Cell>' +
+                '<ss:Cell>' +
+                '<ss:Data ss:Type="String"></ss:Data>' +
+                '</ss:Cell>' +
                 '</ss:Row>';
             cont++;
+            //log.debug('customer payments', paymentsObj[customerName]);
             let payments = paymentsObj[customerName]
+
             for (let payment in payments) {
+                //log.debug('payment', payments[payment])
                 let payedAmount = Number(payments[payment].amount);
                 if (payedAmount > 0) {
                     payedAmount = dollarUS.format({ number: payedAmount });
                 } else {
                     payedAmount = dollarUS.format({ number: payedAmount });
                 }
-                log.debug('payments[payment]', payments[payment])
 
                 let invoices = payments[payment].invoices;
-
                 for (let inv in invoices) {
                     let percentaje = (Number(invoices[inv].invoiceamountremaining) / invoices[inv].invoiceamount) * 100;
-
                     let percentRangeMax = null;
-
                     if (percent != '-1') {
                         switch (percent) {
                             case '1':
@@ -452,7 +466,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             let iscompen = payments[payment].iscompensation ? 'SI' : 'NO';
                             xmlFile += '<ss:Row>' +
                                 '<ss:Cell>' +
-                                '<ss:Data ss:Type="String"></ss:Data>' +
+                                '<ss:Data ss:Type="String">' + customerName + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
@@ -476,7 +490,13 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 '<ss:Data ss:Type="String"></ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
-                                '<ss:Data ss:Type="String">' + payments[payment].amount + '</ss:Data>' +
+                                '<ss:Data ss:Type="String"></ss:Data>' +
+                                '</ss:Cell>' +
+                                '<ss:Cell>' +
+                                '<ss:Data ss:Type="String">' + payedAmount + '</ss:Data>' +
+                                '</ss:Cell>' +
+                                '<ss:Cell>' +
+                                '<ss:Data ss:Type="String"></ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
                                 '<ss:Data ss:Type="String"></ss:Data>' +
@@ -494,7 +514,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                         let iscompen = payments[payment].iscompensation ? 'SI' : 'NO';
                         xmlFile += '<ss:Row>' +
                             '<ss:Cell>' +
-                            '<ss:Data ss:Type="String"></ss:Data>' +
+                            '<ss:Data ss:Type="String">' + customerName + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
@@ -518,7 +538,13 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             '<ss:Data ss:Type="String"></ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
-                            '<ss:Data ss:Type="String">' + payments[payment].amount + '</ss:Data>' +
+                            '<ss:Data ss:Type="String"></ss:Data>' +
+                            '</ss:Cell>' +
+                            '<ss:Cell>' +
+                            '<ss:Data ss:Type="String">' + payedAmount + '</ss:Data>' +
+                            '</ss:Cell>' +
+                            '<ss:Cell>' +
+                            '<ss:Data ss:Type="String"></ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
                             '<ss:Data ss:Type="String"></ss:Data>' +
@@ -533,25 +559,24 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                         break;
                     }
                 }
-
                 cont++;
 
                 for (let invoice in invoices) {
-
+                    //log.debug('invoice', invoices[invoice]);
                     let invAmount = Number(invoices[invoice].invoiceamount);
                     let invRemaing = Number(invoices[invoice].invoiceamountremaining);
                     let amountPaid = Number(invoices[invoice].invoiceamountpaid);
-                    let totalAmountPaid = Number(invoices[invoice].invoicetotalamountpaid)
+                    let totalAmountPaid = Number(invoices[invoice].invoicetotalamountpaid);
+                    let grossProfit = Number(invoices[invoice].estgrossprofit);
 
                     invAmount = dollarUS.format({ number: invAmount });
                     totalAmountPaid = dollarUS.format({ number: totalAmountPaid });
                     invRemaing = dollarUS.format({ number: invRemaing });
                     amountPaid = dollarUS.format({ number: amountPaid });
+                    grossProfit = dollarUS.format({ number: grossProfit });
 
                     let percentaje = (Number(invoices[invoice].invoiceamountremaining) / invoices[invoice].invoiceamount) * 100;
-                    let percentRangeMin = null;
                     let percentRangeMax = null;
-
                     if (percent != '-1') {
                         switch (percent) {
                             case '1':
@@ -570,11 +595,12 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 percentRangeMax = 100;
                                 break;
                         }
+
                         if (percentaje <= percentRangeMax) {
                             let iscompen = payments[payment].iscompensation ? 'SI' : 'NO';
                             xmlFile += '<ss:Row>' +
                                 '<ss:Cell>' +
-                                '<ss:Data ss:Type="String"></ss:Data>' +
+                                '<ss:Data ss:Type="String">' + customerName + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
@@ -589,7 +615,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 '<ss:Data ss:Type="String">' + iscompen + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
-                                '<ss:Data ss:Type="String">' + invoices[invoice].invoicenumber + '</ss:Data>' +
+                                '<ss:Data ss:Type="String">' + (invoices[invoice].invoicenumber).split("#")[1] + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + invoices[invoice].invoiceuuid + '</ss:Data>' +
@@ -604,10 +630,16 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 '<ss:Data ss:Type="String">' + amountPaid + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
+                                '<ss:Data ss:Type="String">' + totalAmountPaid + '</ss:Data>' +
+                                '</ss:Cell>' +
+                                '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + invRemaing + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '<ss:Cell>' +
                                 '<ss:Data ss:Type="String">' + percentaje.toFixed(2) + "%" + '</ss:Data>' +
+                                '</ss:Cell>' +
+                                '<ss:Cell>' +
+                                '<ss:Data ss:Type="String">' + grossProfit + '</ss:Data>' +
                                 '</ss:Cell>' +
                                 '</ss:Row>';
                         }
@@ -615,7 +647,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                         let iscompen = payments[payment].iscompensation ? 'SI' : 'NO';
                         xmlFile += '<ss:Row>' +
                             '<ss:Cell>' +
-                            '<ss:Data ss:Type="String"></ss:Data>' +
+                            '<ss:Data ss:Type="String">' + customerName + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + payments[payment].nopagocliente + '</ss:Data>' +
@@ -630,7 +662,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             '<ss:Data ss:Type="String">' + iscompen + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
-                            '<ss:Data ss:Type="String">' + invoices[invoice].invoicenumber + '</ss:Data>' +
+                            '<ss:Data ss:Type="String">' + (invoices[invoice].invoicenumber).split("#")[1] + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + invoices[invoice].invoiceuuid + '</ss:Data>' +
@@ -645,18 +677,24 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             '<ss:Data ss:Type="String">' + amountPaid + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
+                            '<ss:Data ss:Type="String">' + totalAmountPaid + '</ss:Data>' +
+                            '</ss:Cell>' +
+                            '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + invRemaing + '</ss:Data>' +
                             '</ss:Cell>' +
                             '<ss:Cell>' +
                             '<ss:Data ss:Type="String">' + percentaje.toFixed(2) + "%" + '</ss:Data>' +
                             '</ss:Cell>' +
+                            '<ss:Cell>' +
+                            '<ss:Data ss:Type="String">' + grossProfit + '</ss:Data>' +
+                            '</ss:Cell>' +
                             '</ss:Row>';
                     }
-
-                    cont++
                 }
+                cont++
             }
         }
+
 
         //Data rows end
         xmlFile += '</ss:Table>' +
