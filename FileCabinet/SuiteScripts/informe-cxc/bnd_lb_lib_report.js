@@ -13,96 +13,75 @@ define(['N/search'], (search) => {
         getCustomerPayments(startDate, endDate, customer, docNumber, nocustpayment, nocustpaymentns) {
             let paymentsObj = {};
             let transaction = {};
-            let filters = [
-                ["type", "anyof", "CustPymt", "CustCred"],
-                "AND", ["trandate", "within", startDate, endDate]
-            ]
-            if (nocustpayment) {
-                filters.push("AND");
-                filters.push(["custbody23", "startswith", nocustpayment]);
-            }
-            if (nocustpaymentns) {
-                filters.push("AND");
-                filters.push(["transactionnumbernumber", "equalto", nocustpaymentns]);
-            }
-            if (customer) {
-                filters.push("AND");
-                filters.push(["customermain.internalid", "anyof", customer]);
-            }
-            if (docNumber != '-1') {
-                filters.push("AND");
-                filters.push(["appliedtotransaction", "anyof", docNumber]);
-            }
+            try {
+                let filters = [
+                    ["type", "anyof", "CustPymt", "CustCred"],
+                    "AND", ["trandate", "within", startDate, endDate]
+                ]
+                if (nocustpayment) {
+                    filters.push("AND");
+                    filters.push(["custbody23", "startswith", nocustpayment]);
+                }
+                if (nocustpaymentns) {
+                    filters.push("AND");
+                    filters.push(["transactionnumbernumber", "equalto", nocustpaymentns]);
+                }
+                if (customer) {
+                    filters.push("AND");
+                    filters.push(["customermain.internalid", "anyof", customer]);
+                }
+                if (docNumber != '-1') {
+                    filters.push("AND");
+                    filters.push(["appliedtotransaction", "anyof", docNumber]);
+                }
 
-            log.debug('filters', filters);
+                log.debug('filters', filters);
 
-            let columns = [
-                "mainline", "trandate", "tranid", "amount", "customerMain.altname", "transactionnumber", "transactionname",
-                "appliedtotransaction", "appliedToTransaction.type", "appliedToTransaction.trandate", "appliedToTransaction.amount", "appliedToTransaction.amountpaid",
-                "appliedtolinkamount", "appliedToTransaction.amountremaining", "appliedToTransaction.custbody_be_uuid_sat",
-                "appliedToTransaction.otherrefnum", "custbody26", "custbody23", "appliedToTransaction.tranestgrossprofit"
-            ];
+                let columns = [
+                    "mainline", "trandate", "tranid", "amount", "customerMain.altname", "transactionnumber", "transactionname",
+                    "appliedtotransaction", "appliedToTransaction.type", "appliedToTransaction.trandate", "appliedToTransaction.amount", "appliedToTransaction.amountpaid",
+                    "appliedtolinkamount", "appliedToTransaction.amountremaining", "appliedToTransaction.custbody_be_uuid_sat",
+                    "appliedToTransaction.otherrefnum", "custbody26", "custbody23", "appliedToTransaction.tranestgrossprofit"
+                ];
 
-            let paymentSearchObj = search.create({
-                type: "transaction",
-                filters,
-                columns
-            }).runPaged({
-                pageSize: 1000
-            });
-            paymentSearchObj.pageRanges.forEach((pageRange) => {
-                let currentPage = paymentSearchObj.fetch({ index: pageRange.index });
-                currentPage.data.forEach((currentRow) => {
-                    // log.debug('currentRow', currentRow);
-                    let mainline = currentRow.getValue({ name: 'mainline' });
-                    let customerName = currentRow.getValue({ name: 'altname', join: 'customerMain' });
-                    let trandate = currentRow.getValue({ name: 'trandate' });
-                    let transactionname = currentRow.getValue({ name: 'transactionname' });
-                    let amount = currentRow.getValue({ name: 'amount' });
-                    let appliedtotransaction = currentRow.getValue({ name: 'appliedtotransaction' });
-                    let invoicenumber = currentRow.getText({ name: 'appliedtotransaction' });
-                    let invoiceId = currentRow.getValue({ name: 'appliedtotransaction' });
-                    let invoicetrandate = currentRow.getValue({ name: 'trandate', join: 'appliedToTransaction' });
-                    let tranType = currentRow.getValue({ name: 'type', join: 'appliedToTransaction' });
-                    let invoiceamount = currentRow.getValue({ name: 'amount', join: 'appliedToTransaction' });
-                    let invoiceamountremaining = currentRow.getValue({ name: 'amountremaining', join: 'appliedToTransaction' });
-                    let invoiceuuid = currentRow.getValue({ name: 'custbody_be_uuid_sat', join: 'appliedToTransaction' });
-                    let invoiceamountpaid = currentRow.getValue({ name: 'appliedtolinkamount' });
-                    let invoicetotalamountpaid = currentRow.getValue({ name: 'amountpaid', join: 'appliedToTransaction' });
-                    let invoicepo = currentRow.getValue({ name: 'otherrefnum', join: 'appliedToTransaction' });
-                    let iscompensation = currentRow.getValue({ name: 'custbody26' });
-                    let nopagocliente = currentRow.getValue({ name: 'custbody23' });
-                    let estgrossprofit = currentRow.getValue({ name: 'tranestgrossprofit', join: 'appliedToTransaction' });
+                let paymentSearchObj = search.create({
+                    type: "transaction",
+                    filters,
+                    columns
+                }).runPaged({
+                    pageSize: 1000
+                });
+                //let searchResultCount = paymentSearchObj.runPaged().count;
+                log.debug("vendorbillSearchObj result count", paymentSearchObj.pageRanges);
+                log.debug("vendorbillSearchObj result count", paymentSearchObj.pageRanges.length);
+                paymentSearchObj.pageRanges.forEach((pageRange) => {
+                    let currentPage = paymentSearchObj.fetch({ index: pageRange.index });
+                    log.debug("vendorbillSearchObj result count", currentPage.data.length);
+                    currentPage.data.forEach((currentRow) => {
 
-                    if (mainline == '*') {
-                        if (!paymentsObj.hasOwnProperty(customerName)) {
-                            paymentsObj[customerName] = {};
-                            paymentsObj[customerName][transactionname] = {
-                                transactionname,
-                                trandate,
-                                amount,
-                                iscompensation,
-                                nopagocliente,
-                                invoices: {}
-                            };
-                            if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
-                                paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
-                                    appliedtotransaction,
-                                    invoiceId,
-                                    invoicenumber,
-                                    invoicetrandate,
-                                    invoiceamount,
-                                    invoiceamountremaining,
-                                    invoiceuuid,
-                                    invoiceamountpaid,
-                                    invoicetotalamountpaid,
-                                    invoicepo,
-                                    estgrossprofit
-                                }
-                            }
+                        let mainline = currentRow.getValue({ name: 'mainline' });
+                        let customerName = currentRow.getValue({ name: 'altname', join: 'customerMain' });
+                        let trandate = currentRow.getValue({ name: 'trandate' });
+                        let transactionname = currentRow.getValue({ name: 'transactionname' });
+                        let amount = currentRow.getValue({ name: 'amount' });
+                        let appliedtotransaction = currentRow.getValue({ name: 'appliedtotransaction' });
+                        let invoicenumber = currentRow.getText({ name: 'appliedtotransaction' });
+                        let invoiceId = currentRow.getValue({ name: 'appliedtotransaction' });
+                        let invoicetrandate = currentRow.getValue({ name: 'trandate', join: 'appliedToTransaction' });
+                        let tranType = currentRow.getValue({ name: 'type', join: 'appliedToTransaction' });
+                        let invoiceamount = currentRow.getValue({ name: 'amount', join: 'appliedToTransaction' });
+                        let invoiceamountremaining = currentRow.getValue({ name: 'amountremaining', join: 'appliedToTransaction' });
+                        let invoiceuuid = currentRow.getValue({ name: 'custbody_be_uuid_sat', join: 'appliedToTransaction' });
+                        let invoiceamountpaid = currentRow.getValue({ name: 'appliedtolinkamount' });
+                        let invoicetotalamountpaid = currentRow.getValue({ name: 'amountpaid', join: 'appliedToTransaction' });
+                        let invoicepo = currentRow.getValue({ name: 'otherrefnum', join: 'appliedToTransaction' });
+                        let iscompensation = currentRow.getValue({ name: 'custbody26' });
+                        let nopagocliente = currentRow.getValue({ name: 'custbody23' });
+                        let estgrossprofit = currentRow.getValue({ name: 'tranestgrossprofit', join: 'appliedToTransaction' });
 
-                        } else {
-                            if (!paymentsObj[customerName].hasOwnProperty(transactionname)) {
+                        if (mainline == '*') {
+                            if (!paymentsObj.hasOwnProperty(customerName)) {
+                                paymentsObj[customerName] = {};
                                 paymentsObj[customerName][transactionname] = {
                                     transactionname,
                                     trandate,
@@ -111,81 +90,110 @@ define(['N/search'], (search) => {
                                     nopagocliente,
                                     invoices: {}
                                 };
-                            }
-
-                            if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
-                                paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
-                                    appliedtotransaction,
-                                    invoiceId,
-                                    invoicenumber,
-                                    invoicetrandate,
-                                    invoiceamount,
-                                    invoiceamountremaining,
-                                    invoiceuuid,
-                                    invoiceamountpaid,
-                                    invoicetotalamountpaid,
-                                    invoicepo,
-                                    estgrossprofit
+                                if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
+                                    paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
+                                        appliedtotransaction,
+                                        invoiceId,
+                                        invoicenumber,
+                                        invoicetrandate,
+                                        invoiceamount,
+                                        invoiceamountremaining,
+                                        invoiceuuid,
+                                        invoiceamountpaid,
+                                        invoicetotalamountpaid,
+                                        invoicepo,
+                                        estgrossprofit
+                                    }
                                 }
-                            }
-                        }
-                    } else {
-                        //log.debug('appliedtotransaction', appliedtotransaction)
-                        if (!paymentsObj.hasOwnProperty(customerName)) {
-                            paymentsObj[customerName] = {};
-                            paymentsObj[customerName][transactionname] = {
-                                transactionname,
-                                trandate,
-                                amount,
-                                iscompensation,
-                                nopagocliente,
-                                invoices: {}
-                            };
-                            if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
-                                paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
-                                    appliedtotransaction,
-                                    invoiceId,
-                                    invoicenumber,
-                                    invoicetrandate,
-                                    invoiceamount,
-                                    invoiceamountremaining,
-                                    invoiceuuid,
-                                    invoiceamountpaid,
-                                    invoicetotalamountpaid,
-                                    invoicepo,
-                                    estgrossprofit
+
+                            } else {
+                                if (!paymentsObj[customerName].hasOwnProperty(transactionname)) {
+                                    paymentsObj[customerName][transactionname] = {
+                                        transactionname,
+                                        trandate,
+                                        amount,
+                                        iscompensation,
+                                        nopagocliente,
+                                        invoices: {}
+                                    };
+                                }
+
+                                if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
+                                    paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
+                                        appliedtotransaction,
+                                        invoiceId,
+                                        invoicenumber,
+                                        invoicetrandate,
+                                        invoiceamount,
+                                        invoiceamountremaining,
+                                        invoiceuuid,
+                                        invoiceamountpaid,
+                                        invoicetotalamountpaid,
+                                        invoicepo,
+                                        estgrossprofit
+                                    }
                                 }
                             }
                         } else {
+                            //log.debug('appliedtotransaction', appliedtotransaction)
+                            if (!paymentsObj.hasOwnProperty(customerName)) {
+                                paymentsObj[customerName] = {};
+                                paymentsObj[customerName][transactionname] = {
+                                    transactionname,
+                                    trandate,
+                                    amount,
+                                    iscompensation,
+                                    nopagocliente,
+                                    invoices: {}
+                                };
+                                if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
+                                    paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
+                                        appliedtotransaction,
+                                        invoiceId,
+                                        invoicenumber,
+                                        invoicetrandate,
+                                        invoiceamount,
+                                        invoiceamountremaining,
+                                        invoiceuuid,
+                                        invoiceamountpaid,
+                                        invoicetotalamountpaid,
+                                        invoicepo,
+                                        estgrossprofit
+                                    }
+                                }
+                            } else {
 
-                            if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
-                                paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
-                                    appliedtotransaction,
-                                    invoiceId,
-                                    invoicenumber,
-                                    invoicetrandate,
-                                    invoiceamount,
-                                    invoiceamountremaining,
-                                    invoiceuuid,
-                                    invoiceamountpaid,
-                                    invoicetotalamountpaid,
-                                    invoicepo,
-                                    estgrossprofit
+                                if (appliedtotransaction && tranType == 'CustInvc' && invoiceamountpaid != "") {
+                                    paymentsObj[customerName][transactionname].invoices[appliedtotransaction] = {
+                                        appliedtotransaction,
+                                        invoiceId,
+                                        invoicenumber,
+                                        invoicetrandate,
+                                        invoiceamount,
+                                        invoiceamountremaining,
+                                        invoiceuuid,
+                                        invoiceamountpaid,
+                                        invoicetotalamountpaid,
+                                        invoicepo,
+                                        estgrossprofit
+                                    }
                                 }
                             }
+
                         }
 
-                    }
+                        if (iscompensation) {
+                            if (nopagocliente != "") {
+                                this.getBillPayments(paymentsObj, nopagocliente);
+                            }
 
-                    if (iscompensation) {
-                        if (nopagocliente != "") {
-                            this.getBillPayments(paymentsObj, nopagocliente);
                         }
-
-                    }
-                    //log.debug('paymntobj', paymentsObj);
+                        log.debug('paymntobj', paymentsObj);
+                    });
                 });
-            });
+            } catch (error) {
+                log.error('error', error);
+            }
 
             log.debug('paymentsObj', paymentsObj);
             return paymentsObj;
@@ -264,31 +272,37 @@ define(['N/search'], (search) => {
             return tasks;
         }
 
-        getInvoicesByCustomer(idCustomer) {
+        getInvoicesByCustomer(idCustomer, startdate, enddate) {
             let invoicesArray = [];
-            let invoiceSearchObj = search.create({
-                type: 'transaction',
-                filters: [
-                    ["customermain.internalid", "anyof", idCustomer],
-                    "AND", ["mainline", "is", "T"],
-                    "AND", ["type", "anyof", "CustInvc"]
-                ],
-                columns: ['internalid', 'transactionname']
-            }).runPaged({ pageSize: 1000 });
-            invoiceSearchObj.pageRanges.forEach((pageRange) => {
-                let currentPage = invoiceSearchObj.fetch({ index: pageRange.index });
-                currentPage.data.forEach((currentRow) => {
-                    log.debug('currentRow', currentRow)
-                    let internalid = currentRow.getValue({ name: 'internalid' });
-                    let tranname = currentRow.getValue({ name: 'transactionname' });
-                    let transaction = {
-                        internalid,
-                        tranname
-                    };
-                    invoicesArray.push(transaction);
+            try {
+                let invoiceSearchObj = search.create({
+                    type: 'transaction',
+                    filters: [
+                        ["customermain.internalid", "anyof", idCustomer],
+                        "AND", ["trandate", "within", startdate, enddate],
+                        "AND", ["mainline", "is", "T"],
+                        "AND", ["type", "anyof", "CustInvc"]
+                    ],
+                    columns: ['internalid', 'transactionname']
+                }).runPaged({ pageSize: 1000 });
+                invoiceSearchObj.pageRanges.forEach((pageRange) => {
+                    let currentPage = invoiceSearchObj.fetch({ index: pageRange.index });
+                    currentPage.data.forEach((currentRow) => {
+                        log.debug('currentRow', currentRow)
+                        let internalid = currentRow.getValue({ name: 'internalid' });
+                        let tranname = currentRow.getValue({ name: 'transactionname' });
+                        let transaction = {
+                            internalid,
+                            tranname
+                        };
+                        invoicesArray.push(transaction);
+                    });
                 });
-            });
-            return invoicesArray;
+                return invoicesArray;
+            } catch (error) {
+                log.error('error', error);
+                return error;
+            }
         }
 
         getBillPayments(paymentsObj, noPagoCliente) {

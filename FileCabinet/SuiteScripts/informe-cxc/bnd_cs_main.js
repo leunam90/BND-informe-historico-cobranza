@@ -57,7 +57,12 @@ define(['N/url', './bnd_lb_lib_report'], (url, reportLib) => {
             case 'custpage_customer':
                 try {
                     let idCustomer = currentRecord.getValue({ fieldId: 'custpage_customer' });
-                    let transactions = libReport.getInvoicesByCustomer(idCustomer);
+                    let startdate = currentRecord.getText({ fieldId: 'custpage_startdate' });
+                    let enddate = currentRecord.getText({ fieldId: 'custpage_enddate' });
+
+                    console.log('start', startdate);
+                    console.log('end', enddate)
+                    let transactions = libReport.getInvoicesByCustomer(idCustomer, startdate, enddate);
                     console.log('transactions', transactions);
                     let docNumber = currentRecord.getField('custpage_docnumber');
                     docNumber.removeSelectOption({ value: null });

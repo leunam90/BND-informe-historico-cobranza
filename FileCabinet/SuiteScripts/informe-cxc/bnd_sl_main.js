@@ -102,66 +102,88 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         results.addColumn({ id: 'custpage_gross_profit', type: serverWidget.FieldType.TEXT, label: 'GANANCIA BRUTA' });
 
         const reportLib = new libReport();
-        let paymentsObj = reportLib.getCustomerPayments(startdate, enddate, customer, docnumber, nocustpayment, nocustpaymentns);
-        let cont = 0;
-        let dollarUS = formati.getCurrencyFormatter({ currency: 'USD' });
+        try {
+            let paymentsObj = reportLib.getCustomerPayments(startdate, enddate, customer, docnumber, nocustpayment, nocustpaymentns);
+            log.debug('paymentsObj', paymentsObj);
+            let cont = 0;
+            let dollarUS = formati.getCurrencyFormatter({ currency: 'USD' });
 
-        for (let customerName in paymentsObj) {
-            results.addRow({
-                row: {
-                    custpage_customer: customerName,
-                    custpage_payment_nopagocliente: "",
-                    custpage_transaction: "",
-                    custpage_payment_date: "",
-                    custpage_payment_iscompensation: "",
-                    custpage_document_number: "",
-                    custpage_document_activities: "",
-                    custpage_uuid: "",
-                    custpage_po_number: "",
-                    custpage_original_amount: "",
-                    custpage_payed_amount: "",
-                    custpage_total_payed_amount: "",
-                    custpage_balance: "",
-                    custpage_balance_percent: "",
-                    custpage_gross_profit: ""
-                }
-            });
-            cont++;
-            //log.debug('customer payments', paymentsObj[customerName]);
-            let payments = paymentsObj[customerName]
+            for (let customerName in paymentsObj) {
+                results.addRow({
+                    row: {
+                        custpage_customer: customerName,
+                        custpage_payment_nopagocliente: "",
+                        custpage_transaction: "",
+                        custpage_payment_date: "",
+                        custpage_payment_iscompensation: "",
+                        custpage_document_number: "",
+                        custpage_document_activities: "",
+                        custpage_uuid: "",
+                        custpage_po_number: "",
+                        custpage_original_amount: "",
+                        custpage_payed_amount: "",
+                        custpage_total_payed_amount: "",
+                        custpage_balance: "",
+                        custpage_balance_percent: "",
+                        custpage_gross_profit: ""
+                    }
+                });
+                cont++;
+                //log.debug('customer payments', paymentsObj[customerName]);
+                let payments = paymentsObj[customerName]
 
-            for (let payment in payments) {
-                //log.debug('payment', payments[payment])
-                let payedAmount = Number(payments[payment].amount);
-                if (payedAmount > 0) {
-                    payedAmount = dollarUS.format({ number: payedAmount });
-                } else {
-                    payedAmount = dollarUS.format({ number: payedAmount });
-                }
+                for (let payment in payments) {
+                    //log.debug('payment', payments[payment])
+                    let payedAmount = Number(payments[payment].amount);
+                    if (payedAmount > 0) {
+                        payedAmount = dollarUS.format({ number: payedAmount });
+                    } else {
+                        payedAmount = dollarUS.format({ number: payedAmount });
+                    }
 
-                let invoices = payments[payment].invoices;
-                for (let inv in invoices) {
-                    let percentaje = (Number(invoices[inv].invoiceamountremaining) / invoices[inv].invoiceamount) * 100;
-                    let percentRangeMax = null;
-                    if (percent != '-1') {
-                        switch (percent) {
-                            case '1':
-                                percentRangeMax = 10;
+                    let invoices = payments[payment].invoices;
+                    for (let inv in invoices) {
+                        let percentaje = (Number(invoices[inv].invoiceamountremaining) / invoices[inv].invoiceamount) * 100;
+                        let percentRangeMax = null;
+                        if (percent != '-1') {
+                            switch (percent) {
+                                case '1':
+                                    percentRangeMax = 10;
+                                    break;
+                                case '2':
+                                    percentRangeMax = 25;
+                                    break;
+                                case '3':
+                                    percentRangeMax = 50;
+                                    break;
+                                case '4':
+                                    percentRangeMax = 75;
+                                    break;
+                                case '5':
+                                    percentRangeMax = 100;
+                                    break;
+                            }
+                            if (percentaje <= percentRangeMax) {
+                                results.addRow({
+                                    custpage_customer: customerName,
+                                    custpage_payment_nopagocliente: payments[payment].nopagocliente,
+                                    custpage_transaction: payment,
+                                    custpage_payment_date: payments[payment].trandate,
+                                    custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
+                                    custpage_document_number: "",
+                                    custpage_document_activities: "",
+                                    custpage_uuid: "",
+                                    custpage_po_number: "",
+                                    custpage_original_amount: "",
+                                    custpage_payed_amount: payedAmount,
+                                    custpage_total_payed_amount: "",
+                                    custpage_balance: "",
+                                    custpage_balance_percent: "",
+                                    custpage_gross_profit: ""
+                                });
                                 break;
-                            case '2':
-                                percentRangeMax = 25;
-                                break;
-                            case '3':
-                                percentRangeMax = 50;
-                                break;
-                            case '4':
-                                percentRangeMax = 75;
-                                break;
-                            case '5':
-                                percentRangeMax = 100;
-                                break;
-                        }
-                        if (percentaje <= percentRangeMax) {
+                            }
+                        } else {
                             results.addRow({
                                 custpage_customer: customerName,
                                 custpage_payment_nopagocliente: payments[payment].nopagocliente,
@@ -181,67 +203,67 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                             });
                             break;
                         }
-                    } else {
-                        results.addRow({
-                            custpage_customer: customerName,
-                            custpage_payment_nopagocliente: payments[payment].nopagocliente,
-                            custpage_transaction: payment,
-                            custpage_payment_date: payments[payment].trandate,
-                            custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
-                            custpage_document_number: "",
-                            custpage_document_activities: "",
-                            custpage_uuid: "",
-                            custpage_po_number: "",
-                            custpage_original_amount: "",
-                            custpage_payed_amount: payedAmount,
-                            custpage_total_payed_amount: "",
-                            custpage_balance: "",
-                            custpage_balance_percent: "",
-                            custpage_gross_profit: ""
-                        });
-                        break;
                     }
-                }
 
 
-                cont++;
+                    cont++;
 
-                for (let invoice in invoices) {
-                    //log.debug('invoice', invoices[invoice]);
-                    let invAmount = Number(invoices[invoice].invoiceamount);
-                    let invRemaing = Number(invoices[invoice].invoiceamountremaining);
-                    let amountPaid = Number(invoices[invoice].invoiceamountpaid);
-                    let totalAmountPaid = Number(invoices[invoice].invoicetotalamountpaid);
-                    let grossProfit = Number(invoices[invoice].estgrossprofit);
+                    for (let invoice in invoices) {
+                        //log.debug('invoice', invoices[invoice]);
+                        let invAmount = Number(invoices[invoice].invoiceamount);
+                        let invRemaing = Number(invoices[invoice].invoiceamountremaining);
+                        let amountPaid = Number(invoices[invoice].invoiceamountpaid);
+                        let totalAmountPaid = Number(invoices[invoice].invoicetotalamountpaid);
+                        let grossProfit = Number(invoices[invoice].estgrossprofit);
 
-                    invAmount = dollarUS.format({ number: invAmount });
-                    totalAmountPaid = dollarUS.format({ number: totalAmountPaid });
-                    invRemaing = dollarUS.format({ number: invRemaing });
-                    amountPaid = dollarUS.format({ number: amountPaid });
-                    grossProfit = dollarUS.format({ number: grossProfit });
+                        invAmount = dollarUS.format({ number: invAmount });
+                        totalAmountPaid = dollarUS.format({ number: totalAmountPaid });
+                        invRemaing = dollarUS.format({ number: invRemaing });
+                        amountPaid = dollarUS.format({ number: amountPaid });
+                        grossProfit = dollarUS.format({ number: grossProfit });
 
-                    let percentaje = (Number(invoices[invoice].invoiceamountremaining) / invoices[invoice].invoiceamount) * 100;
-                    let percentRangeMax = null;
-                    if (percent != '-1') {
-                        switch (percent) {
-                            case '1':
-                                percentRangeMax = 10;
-                                break;
-                            case '2':
-                                percentRangeMax = 25;
-                                break;
-                            case '3':
-                                percentRangeMax = 50;
-                                break;
-                            case '4':
-                                percentRangeMax = 75;
-                                break;
-                            case '5':
-                                percentRangeMax = 100;
-                                break;
-                        }
+                        let percentaje = (Number(invoices[invoice].invoiceamountremaining) / invoices[invoice].invoiceamount) * 100;
+                        let percentRangeMax = null;
+                        if (percent != '-1') {
+                            switch (percent) {
+                                case '1':
+                                    percentRangeMax = 10;
+                                    break;
+                                case '2':
+                                    percentRangeMax = 25;
+                                    break;
+                                case '3':
+                                    percentRangeMax = 50;
+                                    break;
+                                case '4':
+                                    percentRangeMax = 75;
+                                    break;
+                                case '5':
+                                    percentRangeMax = 100;
+                                    break;
+                            }
 
-                        if (percentaje <= percentRangeMax) {
+                            if (percentaje <= percentRangeMax) {
+                                results.addRow({
+                                    custpage_customer: customerName,
+                                    custpage_payment_nopagocliente: payments[payment].nopagocliente,
+                                    custpage_transaction: payment,
+                                    custpage_payment_date: payments[payment].trandate,
+                                    custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
+                                    custpage_document_number: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceid=' + invoices[invoice].invoiceId + '" target="_blank">' + (invoices[invoice].invoicenumber).split("#")[1] + '</a>', //(invoices[invoice].invoicenumber).split(" ")[1],
+                                    custpage_document_activities: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceidactivity=' + invoices[invoice].invoiceId + '" target="_blank">VER ACTIVIDADES</a>', //"VER ACTIVIDADES",
+                                    //custpage_document_id: invoices[invoice].invoiceId,
+                                    custpage_uuid: invoices[invoice].invoiceuuid || null,
+                                    custpage_po_number: invoices[invoice].invoicepo || null,
+                                    custpage_original_amount: invAmount,
+                                    custpage_payed_amount: amountPaid,
+                                    custpage_total_payed_amount: totalAmountPaid,
+                                    custpage_balance: invRemaing,
+                                    custpage_balance_percent: percentaje.toFixed(2) + "%",
+                                    custpage_gross_profit: grossProfit
+                                });
+                            }
+                        } else {
                             results.addRow({
                                 custpage_customer: customerName,
                                 custpage_payment_nopagocliente: payments[payment].nopagocliente,
@@ -250,7 +272,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
                                 custpage_document_number: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceid=' + invoices[invoice].invoiceId + '" target="_blank">' + (invoices[invoice].invoicenumber).split("#")[1] + '</a>', //(invoices[invoice].invoicenumber).split(" ")[1],
                                 custpage_document_activities: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceidactivity=' + invoices[invoice].invoiceId + '" target="_blank">VER ACTIVIDADES</a>', //"VER ACTIVIDADES",
-                                //custpage_document_id: invoices[invoice].invoiceId,
+                                custpage_document_id: invoices[invoice].invoiceId,
                                 custpage_uuid: invoices[invoice].invoiceuuid || null,
                                 custpage_po_number: invoices[invoice].invoicepo || null,
                                 custpage_original_amount: invAmount,
@@ -261,30 +283,13 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                                 custpage_gross_profit: grossProfit
                             });
                         }
-                    } else {
-                        results.addRow({
-                            custpage_customer: customerName,
-                            custpage_payment_nopagocliente: payments[payment].nopagocliente,
-                            custpage_transaction: payment,
-                            custpage_payment_date: payments[payment].trandate,
-                            custpage_payment_iscompensation: payments[payment].iscompensation ? 'SI' : 'NO',
-                            custpage_document_number: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceid=' + invoices[invoice].invoiceId + '" target="_blank">' + (invoices[invoice].invoicenumber).split("#")[1] + '</a>', //(invoices[invoice].invoicenumber).split(" ")[1],
-                            custpage_document_activities: '<a href="/app/site/hosting/scriptlet.nl?script=129&deploy=1&invoiceidactivity=' + invoices[invoice].invoiceId + '" target="_blank">VER ACTIVIDADES</a>', //"VER ACTIVIDADES",
-                            custpage_document_id: invoices[invoice].invoiceId,
-                            custpage_uuid: invoices[invoice].invoiceuuid || null,
-                            custpage_po_number: invoices[invoice].invoicepo || null,
-                            custpage_original_amount: invAmount,
-                            custpage_payed_amount: amountPaid,
-                            custpage_total_payed_amount: totalAmountPaid,
-                            custpage_balance: invRemaing,
-                            custpage_balance_percent: percentaje.toFixed(2) + "%",
-                            custpage_gross_profit: grossProfit
-                        });
+                        cont++
                     }
-                    cont++
                 }
-            }
 
+            }
+        } catch (error) {
+            log.error('error', error);
         }
 
         log.debug('results', results)
