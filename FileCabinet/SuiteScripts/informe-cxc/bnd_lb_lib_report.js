@@ -6,7 +6,7 @@
  * @ModuleScope Public
  */
 
-define(['N/search'], (search) => {
+define(['N/search', 'N/runtime'], (search, runtime) => {
     return class BandanaLibs {
         constructor() {}
 
@@ -188,7 +188,9 @@ define(['N/search'], (search) => {
                             }
 
                         }
-                        log.debug('paymntobj', paymentsObj);
+                        //log.debug('paymntobj', paymentsObj);
+                        let scriptObj = runtime.getCurrentScript();
+                        //log.debug('remaining', scriptObj.getRemainingUsage())
                     });
                 });
             } catch (error) {
