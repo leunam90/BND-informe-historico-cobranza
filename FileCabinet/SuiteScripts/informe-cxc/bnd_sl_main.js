@@ -36,7 +36,8 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                     const percent = context.request.parameters.custpage_percent;
                     const nocustpayment = context.request.parameters.custpage_nopagocliente;
                     const nocustpaymentns = context.request.parameters.custpage_nopagonetsuite;
-                    form = createResults(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns);
+                    const accountnumber = context.request.parameters.custpage_accountnumber;
+                    form = createResults(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns, accountnumber);
                     log.debug('form', form)
                     context.response.writePage({ pageObject: form });
                     break;
@@ -65,6 +66,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         let nocustpaymentNSField = form.addField({ id: 'custpage_nopagonetsuite', type: 'text', label: 'NO PAGO NETSUITE', container: 'custpage_fieldgroup' });
         let docNumberField = form.addField({ id: 'custpage_docnumber', type: 'select', label: 'NO DOCUMENTO', container: 'custpage_fieldgroup' });
         docNumberField.addSelectOption({ value: '-1', text: '-Seleccione-' });
+        let accountNumberField = form.addField({ id: 'custpage_accountnumber', type: 'select', label: 'CUENTA BANCARIA', container: 'custpage_fieldgroup', source: 'account' });
         let percentField = form.addField({ id: 'custpage_percent', type: 'select', label: 'PORCENTAJE', container: 'custpage_fieldgroup' });
         percentField.addSelectOption({ value: '-1', text: '-Seleccione-' });
         percentField.addSelectOption({ value: '1', text: '<=10%' });
@@ -79,8 +81,9 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         return form
     }
 
-    function createResults(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns) {
+    function createResults(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns, accountnumber) {
         log.debug('customer', customer);
+        log.debug('accountnumber', accountnumber);
         let results = serverWidget.createList({ title: 'HISTORIAL DE COBRANZA' });
         results.clientScriptModulePath = './bnd_cs_main.js';
         results.addButton({ id: 'custpage_mainpage', label: 'Filtros', functionName: "mainpage" });
@@ -103,7 +106,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
 
         const reportLib = new libReport();
         try {
-            let paymentsObj = reportLib.getCustomerPayments(startdate, enddate, customer, docnumber, nocustpayment, nocustpaymentns);
+            let paymentsObj = reportLib.getCustomerPayments(startdate, enddate, customer, docnumber, nocustpayment, nocustpaymentns, accountnumber);
             log.debug('paymentsObj', paymentsObj);
             let cont = 0;
             let dollarUS = formati.getCurrencyFormatter({ currency: 'USD' });

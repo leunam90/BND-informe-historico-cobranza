@@ -10,7 +10,7 @@ define(['N/search', 'N/runtime'], (search, runtime) => {
     return class BandanaLibs {
         constructor() {}
 
-        getCustomerPayments(startDate, endDate, customer, docNumber, nocustpayment, nocustpaymentns) {
+        getCustomerPayments(startDate, endDate, customer, docNumber, nocustpayment, nocustpaymentns, accountnumber) {
             let paymentsObj = {};
             let transaction = {};
             try {
@@ -34,6 +34,10 @@ define(['N/search', 'N/runtime'], (search, runtime) => {
                     filters.push("AND");
                     filters.push(["appliedtotransaction", "anyof", docNumber]);
                 }
+                if(accountnumber){
+                    filters.push("AND");
+                    filters.push(["account","anyof",accountnumber])
+                }
 
                 log.debug('filters', filters);
 
@@ -52,8 +56,8 @@ define(['N/search', 'N/runtime'], (search, runtime) => {
                     pageSize: 1000
                 });
                 //let searchResultCount = paymentSearchObj.runPaged().count;
-                log.debug("vendorbillSearchObj result count", paymentSearchObj.pageRanges);
-                log.debug("vendorbillSearchObj result count", paymentSearchObj.pageRanges.length);
+                //log.debug("vendorbillSearchObj result count", paymentSearchObj.pageRanges);
+                //log.debug("vendorbillSearchObj result count", paymentSearchObj.pageRanges.length);
                 paymentSearchObj.pageRanges.forEach((pageRange) => {
                     let currentPage = paymentSearchObj.fetch({ index: pageRange.index });
                     log.debug("vendorbillSearchObj result count", currentPage.data.length);
