@@ -6,7 +6,7 @@
  * @ModuleScope Public
  */
 
-define(['N/search', 'N/runtime'], (search, runtime) => {
+define(['N/search', 'N/runtime', 'N/record'], (search, runtime, record) => {
     const HISTORICRECORD = 'customrecord_bnd_historial_cobranza';
     return class BandanaLibs {
         constructor() { }
@@ -471,16 +471,27 @@ define(['N/search', 'N/runtime'], (search, runtime) => {
                 message: null,
                 newRecordId: null
             }
+            log.debug('startdate', startdate);
+            log.debug('enddate', enddate);
+            log.debug('customer', customer);
+            log.debug('docnumber', docnumber);
+            log.debug('nocustpayment', nocustpayment);
             try {
                 let newRecord = record.create({
                     type: HISTORICRECORD,
                     isDynamic: true
                 });
-                newRecord.setValue({ fieldId: 'custrecord_startdate', value: startdate });
-                newRecord.setValue({ fieldId: 'custrecord_enddate', value: enddate });
+                newRecord.setText({ fieldId: 'custrecord_startdate', text: startdate });
+                newRecord.setText({ fieldId: 'custrecord_enddate', text: enddate });
                 newRecord.setValue({ fieldId: 'custrecord_customer', value: customer });
-                newRecord.setValue({ fieldId: 'custrecord_docnumber', value: docnumber });
-                newRecord.setValue({ fieldId: 'custrecord_porcentaje', value: percent });
+                if(docnumber != -1){
+                    newRecord.setValue({ fieldId: 'custrecord_docnumber', value: docnumber });
+                }
+                
+                if(percent != -1){
+                    newRecord.setValue({ fieldId: 'custrecord_porcentaje', value: percent });
+                }
+                
                 newRecord.setValue({ fieldId: 'custrecord_nopagocliente', value: nocustpayment });
                 newRecord.setValue({ fieldId: 'custrecord_nopagonetsuite', value: nocustpaymentns });
                 newRecord.setValue({ fieldId: 'custrecord_report_status', value: '1' })

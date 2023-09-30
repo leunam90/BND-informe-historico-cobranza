@@ -6,12 +6,12 @@
  * @NScriptType Suitelet
  */
 
-define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', 'N/file', 'N/runtime', 'N/record', 'N/search', './bnd_lb_lib_report', 'N/task'], (serverWidget, format, formati, url, encode, file, runtime, record, search, libReport, task) => {
+define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', 'N/file', 'N/runtime', 'N/record', 'N/search', './bnd_lb_lib_report', 'N/task', 'N/https'], (serverWidget, format, formati, url, encode, file, runtime, record, search, libReport, task, https) => {
     const entry_point = {
         onRequest: null,
     };
     const HISTORICRECORD = 'customrecord_bnd_historial_cobranza';
-    const MRSCRIPID = 'customscript_bnd_mr_process_payments';
+    const SCSCRIPID = 'customscript_bnd_sc_process_payments';
 
     entry_point.onRequest = (context) => {
         log.debug('context', context);
@@ -88,7 +88,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         percentField.addSelectOption({ value: '4', text: '<=75' });
         percentField.addSelectOption({ value: '5', text: '<=100' });
         startDateField.isMandatory = true;
-        startDateField.defaultValue = '01/01/2019'
+        startDateField.defaultValue = '01/01/2023'
         endDateField.isMandatory = true;
         endDateField.defaultValue = new Date();
         return form
@@ -737,22 +737,22 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
     }
 
     function executeProcess(newRecordId, startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns) {
-        let mrTask = task.create({
-            taskType: task.TaskType.MAP_REDUCE,
-            scriptId: MRSCRIPID,
+        let scTask = task.create({
+            taskType: task.TaskType.SCHEDULED_SCRIPT,
+            scriptId: SCSCRIPID,
             params: {
-                custscript_bnd_historic_parent_record: newRecordId,
-                custscript_mr_historic_startdate: startdate,
-                custscript_mr_historic_enddate: enddate,
-                custscript_mr_historic_customer: customer,
-                custscript_mr_historic_docnumber: docnumber,
-                custscript_mr_historic_percent: percent,
-                custscript_mr_historic_nopagocliente: nocustpayment,
-                custscript_mr_historic_nopagonetsuite: nocustpaymentns
+                custscript_bnd_sc_parent_record: newRecordId,
+                custscript_sc_historic_startdate: startdate,
+                custscript_sc_historic_enddate: enddate,
+                custscript_sc_historic_customer: customer,
+                custscript_sc_historic_docnumber: docnumber,
+                custscript_sc_historic_percent: percent,
+                custscript_sc_historic_nopagocliente: nocustpayment,
+                custscript_sc_historic_nopagonetsuite: nocustpaymentns
             }
         });
 
-        let taskId = mrTask.submit();
+        let taskId = scTask.submit();
         let statusTask = task.checkStatus(taskId);
 
         log.debug("STATUS_TASK", "Status: " + statusTask);

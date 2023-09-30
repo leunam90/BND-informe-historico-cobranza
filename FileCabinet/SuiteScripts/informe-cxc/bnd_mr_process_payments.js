@@ -10,6 +10,18 @@ define(['N/https', 'N/record', 'N/runtime', 'N/search'],
  * @param{search} search
  */
     (https, record, runtime, search) => {
+        const HISTORICRECORD = 'customrecord_bnd_historial_cobranza';
+        const HISTORICLINES = 'customrecord_historico_cobranza_lineas';
+        const MRHISTORICRECORDPARAM = 'custscript_bnd_historic_parent_record';
+        const STARTDATE = 'custscript_mr_historic_startdate';
+        const ENDDATE = 'custscript_mr_historic_enddate';
+        const CUSTOMER = 'custscript_mr_historic_customer';
+        const DOCUMENT_NUMBER = 'custscript_mr_historic_docnumber';
+        const PERCENT = 'custscript_mr_historic_percent';
+        const NUMERO_PAGO_CLIENTE = 'custscript_mr_historic_nopagocliente';
+        const NUMERO_PAGO_NETSUITE = 'custscript_mr_historic_nopagonetsuite';
+
+
         /**
          * Defines the function that is executed at the beginning of the map/reduce process and generates the input data.
          * @param {Object} inputContext
@@ -24,7 +36,50 @@ define(['N/https', 'N/record', 'N/runtime', 'N/search'],
          */
 
         const getInputData = (inputContext) => {
+            let startdate = runtime.getCurrentScript().getParameter({ name: STARTDATE });
+            let enddate = runtime.getCurrentScript().getParameter({ name: ENDDATE });
+            let customer = runtime.getCurrentScript().getParameter({ name: CUSTOMER });
+            let docnumber = runtime.getCurrentScript().getParameter({ name: DOCUMENT_NUMBER });
+            let nocustpayment = runtime.getCurrentScript().getParameter({ name: NUMERO_PAGO_CLIENTE });
+            let nocustpaymentns = runtime.getCurrentScript().getParameter({ name: NUMERO_PAGO_NETSUITE });
 
+            let filters = [
+                ["type", "anyof", "CustPymt", "CustCred"],
+                "AND", ["trandate", "within", startdate, enddate]
+            ]
+            if (nocustpayment) {
+                filters.push("AND");
+                filters.push(["custbody23", "startswith", nocustpayment]);
+            }
+            if (nocustpaymentns) {
+                filters.push("AND");
+                filters.push(["transactionnumbernumber", "equalto", nocustpaymentns]);
+            }
+            if (customer) {
+                filters.push("AND");
+                filters.push(["customermain.internalid", "anyof", customer]);
+            }
+            if (docnumber != '-1') {
+                filters.push("AND");
+                filters.push(["appliedtotransaction", "anyof", docNumber]);
+            }
+
+            log.debug('filters', filters);
+
+            let columns = [
+                "mainline", "trandate", "tranid", "amount", "customerMain.altname", "transactionnumber", "transactionname",
+                "appliedtotransaction", "appliedToTransaction.type", "appliedToTransaction.trandate", "appliedToTransaction.amount", "appliedToTransaction.amountpaid",
+                "appliedtolinkamount", "appliedToTransaction.amountremaining", "appliedToTransaction.custbody_be_uuid_sat",
+                "appliedToTransaction.otherrefnum", "custbody26", "custbody23", "appliedToTransaction.tranestgrossprofit"
+            ];
+
+            let paymentSearchObj = search.create({
+                type: "transaction",
+                filters,
+                columns
+            })
+
+            return paymentSearchObj;
         }
 
         /**
@@ -45,7 +100,8 @@ define(['N/https', 'N/record', 'N/runtime', 'N/search'],
          */
 
         const map = (mapContext) => {
-
+            let value = JSON.parse(mapContext.value);
+            log.debug('value', value);
         }
 
         /**
@@ -91,6 +147,6 @@ define(['N/https', 'N/record', 'N/runtime', 'N/search'],
 
         }
 
-        return {getInputData, map, reduce, summarize}
+        return { getInputData, map, reduce, summarize }
 
     });
