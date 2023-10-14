@@ -6,15 +6,19 @@
  * @NScriptType Suitelet
  */
 
-define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', 'N/file', 'N/runtime', 'N/record', 'N/search', './bnd_lb_lib_report'], (serverWidget, format, formati, url, encode, file, runtime, record, search, libReport) => {
+define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', 'N/file', 'N/runtime', 'N/record', 'N/search', './bnd_lb_lib_report', 'N/task', 'N/https'], (serverWidget, format, formati, url, encode, file, runtime, record, search, libReport, task, https) => {
     const entry_point = {
         onRequest: null,
     };
+    const HISTORICRECORD = 'customrecord_bnd_historial_cobranza';
+    const SCSCRIPID = 'customscript_bnd_sc_process_payments';
 
     entry_point.onRequest = (context) => {
         log.debug('context', context);
         log.debug('parameters', context.request.parameters)
+
         let form = null;
+        let customM = new libReport();
         try {
             switch (context.request.method) {
                 case 'GET':
@@ -37,9 +41,18 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
                     const nocustpayment = context.request.parameters.custpage_nopagocliente;
                     const nocustpaymentns = context.request.parameters.custpage_nopagonetsuite;
                     const accountnumber = context.request.parameters.custpage_accountnumber;
-                    form = createResults(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns, accountnumber);
-                    log.debug('form', form)
-                    context.response.writePage({ pageObject: form });
+                    let response = customM.createRecord(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns, accountnumber);
+                    if (!response.error) {
+                        executeProcess(response.newRecordId, startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns, accountnumber);
+                        context.response.sendRedirect({
+                            type: https.RedirectType.RECORD,
+                            identifier: HISTORICRECORD,
+                            id: response.newRecordId
+                        });
+                    } else {
+                        context.response.writePage(response.message);
+                    }
+
                     break;
             }
         } catch (error) {
@@ -75,7 +88,7 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
         percentField.addSelectOption({ value: '4', text: '<=75' });
         percentField.addSelectOption({ value: '5', text: '<=100' });
         startDateField.isMandatory = true;
-        startDateField.defaultValue = '01/01/2019'
+        startDateField.defaultValue = '01/01/2023'
         endDateField.isMandatory = true;
         endDateField.defaultValue = new Date();
         return form
@@ -721,6 +734,28 @@ define(['N/ui/serverWidget', 'N/format', 'N/format/i18n', 'N/url', 'N/encode', '
             returnExternalUrl: false
         });
         return baseURL;
+    }
+
+    function executeProcess(newRecordId, startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns) {
+        let scTask = task.create({
+            taskType: task.TaskType.SCHEDULED_SCRIPT,
+            scriptId: SCSCRIPID,
+            params: {
+                custscript_bnd_sc_parent_record: newRecordId,
+                custscript_sc_historic_startdate: startdate,
+                custscript_sc_historic_enddate: enddate,
+                custscript_sc_historic_customer: customer,
+                custscript_sc_historic_docnumber: docnumber,
+                custscript_sc_historic_percent: percent,
+                custscript_sc_historic_nopagocliente: nocustpayment,
+                custscript_sc_historic_nopagonetsuite: nocustpaymentns
+            }
+        });
+
+        let taskId = scTask.submit();
+        let statusTask = task.checkStatus(taskId);
+
+        log.debug("STATUS_TASK", "Status: " + statusTask);
     }
 
 });

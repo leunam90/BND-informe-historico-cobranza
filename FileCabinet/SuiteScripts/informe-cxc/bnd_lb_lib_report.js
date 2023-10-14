@@ -6,9 +6,10 @@
  * @ModuleScope Public
  */
 
-define(['N/search', 'N/runtime'], (search, runtime) => {
+define(['N/search', 'N/runtime', 'N/record'], (search, runtime, record) => {
+    const HISTORICRECORD = 'customrecord_bnd_historial_cobranza';
     return class BandanaLibs {
-        constructor() {}
+        constructor() { }
 
         getCustomerPayments(startDate, endDate, customer, docNumber, nocustpayment, nocustpaymentns, accountnumber) {
             let paymentsObj = {};
@@ -34,9 +35,9 @@ define(['N/search', 'N/runtime'], (search, runtime) => {
                     filters.push("AND");
                     filters.push(["appliedtotransaction", "anyof", docNumber]);
                 }
-                if(accountnumber){
+                if (accountnumber) {
                     filters.push("AND");
-                    filters.push(["account","anyof",accountnumber])
+                    filters.push(["account", "anyof", accountnumber])
                 }
 
                 log.debug('filters', filters);
@@ -458,6 +459,52 @@ define(['N/search', 'N/runtime'], (search, runtime) => {
 
             //log.debug('paymentsObj', paymentsObj);
             return paymentsObj;
+        }
+
+        /**
+         * Create a new record for the report
+         * @returns object
+         */
+        createRecord(startdate, enddate, customer, docnumber, percent, nocustpayment, nocustpaymentns, accountnumber) {
+            let response = {
+                error: false,
+                message: null,
+                newRecordId: null
+            }
+            log.debug('startdate', startdate);
+            log.debug('enddate', enddate);
+            log.debug('customer', customer);
+            log.debug('docnumber', docnumber);
+            log.debug('nocustpayment', nocustpayment);
+            try {
+                let newRecord = record.create({
+                    type: HISTORICRECORD,
+                    isDynamic: true
+                });
+                newRecord.setText({ fieldId: 'custrecord_startdate', text: startdate });
+                newRecord.setText({ fieldId: 'custrecord_enddate', text: enddate });
+                newRecord.setValue({ fieldId: 'custrecord_customer', value: customer });
+                if(docnumber != -1){
+                    newRecord.setValue({ fieldId: 'custrecord_docnumber', value: docnumber });
+                }
+                
+                if(percent != -1){
+                    newRecord.setValue({ fieldId: 'custrecord_porcentaje', value: percent });
+                }
+                
+                newRecord.setValue({ fieldId: 'custrecord_nopagocliente', value: nocustpayment });
+                newRecord.setValue({ fieldId: 'custrecord_nopagonetsuite', value: nocustpaymentns });
+                newRecord.setValue({ fieldId: 'custrecord_report_status', value: '1' })
+                let newRecordId = newRecord.save();
+
+                response.newRecordId = newRecordId;
+
+            } catch (error) {
+                log.error('createRecord error', error);
+                response.error = true;
+                response.message = error.message;
+            }
+            return response;
         }
     }
 })
